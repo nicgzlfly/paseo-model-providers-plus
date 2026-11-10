@@ -21,7 +21,11 @@ export function codexCatalog(supplier: Supplier, bundled: { models: NativeModel[
 export async function writeCodexCatalog(supplier: Supplier, extensionPath: string) {
   let catalog: ReturnType<typeof codexCatalog>;
   try {
-    const { stdout } = await exec("codex", ["debug", "models", "--bundled"], { timeout: 10000, maxBuffer: 8 * 1024 * 1024 });
+    // Windows installs may expose codex as a .cmd shim, which execFile can only launch through cmd.exe.
+    const { stdout } = await exec("codex", ["debug", "models", "--bundled"], {
+      timeout: 10000, maxBuffer: 8 * 1024 * 1024,
+      ...(process.platform === "win32" ? { shell: true } : {}),
+    });
     catalog = codexCatalog(supplier, JSON.parse(stdout));
   } catch { throw new Error("无法读取 Codex 内置模型目录，请更新 Codex CLI 后重试"); }
   const content = JSON.stringify(catalog);

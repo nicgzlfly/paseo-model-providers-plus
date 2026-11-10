@@ -1,8 +1,10 @@
-# Paseo 模型供应商
+# Paseo 模型供应商增强版（fork）
 
 [English](README.md)
 
 在一个 Paseo 页面中管理多种 Agent 的模型接口与模型列表，保留现有官方订阅登录，为独立会话选择自定义 API。
+
+这是 [hulkzzhou1/paseo-model-providers](https://github.com/hulkzzhou1/paseo-model-providers) 的 MIT 许可 fork，在上游基础上增加了 Claude Code 上下文与输出容量的注入。
 
 ![供应商管理页，使用示例数据](assets/providers-zh-CN.png)
 
@@ -21,8 +23,10 @@
 Paseo daemon 和客户端均需 **0.12.0+**，所选 Agent CLI 需预先安装并对 daemon 可见。在目标宿主启用插件后执行：
 
 ```bash
-paseo plugin add hulkzzhou1/model-providers
+paseo plugin add git:nicgzlfly/paseo-model-providers-plus
 ```
+
+插件 ID 为 `model-providers-plus`。不要同时启用原 `model-providers` 插件：两者会管理同一份 `PASEO_HOME/model-providers/suppliers.json` 记录和同一组 `mp-*` Provider 别名。
 
 页面采用紧凑工作台布局：可按供应商名称、地址、模型别名、实际请求 ID 或 Agent 搜索，并按启用状态筛选。设置栏内通过返回按钮在列表和详情间切换，内容区域足够宽时左右并列展示列表和详情；详情中可直接查看模型映射及每模型容量。
 
@@ -31,7 +35,7 @@ paseo plugin add hulkzzhou1/model-providers
 1. 点击「新增供应商」，选择「自定义」、「DeepSeek」或「OpenRouter」。预设仅填入默认值，名称、协议、API 基础地址、模型和容量均可修改，可换成兼容协议的代理或网关地址。选择预设后再填写 API 密钥。
 2. 点击「加载模型」，从标准模型接口自动填入模型表单。也可点击「添加模型」逐行填写，移除不需要启用的行。每行包含模型 ID 和可选的实际请求 ID，不再使用多行文本或逗号分隔输入。
 3. 在模型行内修改「实际请求 ID」即可建立映射，例如 `deepseek-flash` → `gateway/deepseek`。选择器显示模型 ID，连接测试和 Agent 使用实际请求 ID；实际请求 ID 留空则使用模型 ID 本身。同一供应商内，模型 ID 和实际请求 ID 均不能重复。
-4. 在**每个模型行内**分别填写上下文与最大输出，再选择兼容的 Agent 保存。Codex 通过原生模型目录接收各模型的上下文容量；OpenCode 和 Pi/OMP 接收上下文与输出容量，映射模型同样生效。支持完整数字或 `256K`、`1M` 等简写（`1K = 1000` Token）。加载目录会补齐未手动填写的容量，保留已填写值；空白字段沿用供应商原有默认值，旧记录无需迁移。
+4. 在**每个模型行内**分别填写上下文与最大输出，再选择兼容的 Agent 保存。Codex 通过原生模型目录接收各模型的上下文容量；OpenCode 和 Pi/OMP 接收上下文与输出容量，映射模型同样生效。Claude Code 通过 `CLAUDE_CODE_MAX_CONTEXT_TOKENS` 与 `CLAUDE_CODE_MAX_OUTPUT_TOKENS` 接收默认模型的显式容量。支持完整数字或 `256K`、`1M` 等简写（`1K = 1000` Token）。加载目录会补齐未手动填写的容量，保留已填写值；空白字段沿用供应商原有默认值，旧记录无需迁移。
 5. 执行「测试连接」，再通过「创建 Agent」填写服务器绝对工作目录启动。也可在 Paseo 原生创建入口选择生成的供应商。
 
 DeepSeek 预设默认使用 Chat Completions 协议，包含 `deepseek-flash`、`deepseek-v4-pro`。默认规格于 2026-10-22 按[官方模型元数据](https://api-docs.deepseek.com/api/list-models/)核对，最新可用模型以获取结果为准；自定义网关的容量可能不同。
@@ -42,9 +46,15 @@ OpenRouter 预设使用[官方 Chat Completions 接口](https://openrouter.ai/do
 
 编辑器顶部显示供应商摘要，连接设置、模型与路由、Agent 设置采用页签分组；桌面模型采用紧凑表格，手机保留带标签的分组字段。关闭有修改的表单时需确认放弃，加载或保存过程中禁止继续编辑和关闭。切换保留草稿，表单校验失败返回对应页签。当前页签滚动时，保存与取消始终可见。加载模型会合并新增行，不覆盖手工 ID 或映射；重复加载或请求失败会保留草稿。每个供应商最多支持 100 行模型，超出时明确提示。
 
-Codex 需要支持 `codex debug models --bundled` 的 CLI（已验证 0.160.1）。保存时沿用本机 CLI 的模型指令和工具配置，生成包含每模型上下文容量的本地目录。Codex 保留原生预留比例，例如 1,000,000 Token 当前上报 950,000 可用 Token。最大输出字段不配置 Codex 或 Claude Code；Claude Code 的上下文也使用自身规则。升级插件后，已有供应商需重新保存并重新打开会话。
+Codex 需要支持 `codex debug models --bundled` 的 CLI（已验证 0.160.1）。保存时沿用本机 CLI 的模型指令和工具配置，生成包含每模型上下文容量的本地目录。Codex 保留原生预留比例，例如 1,000,000 Token 当前上报 950,000 可用 Token。最大输出字段不配置 Codex。升级插件后，已有供应商需重新保存并重新打开会话。
 
 配置在新建或重新打开会话时生效，进行中的会话不会热切换。自定义 API 使用对应供应商额度，与官方订阅独立计费。
+
+## Claude Code 容量注入
+
+Claude Code 不会从供应商记录读取每模型容量。对于在模型行中显式填写了容量的供应商，本 fork 会把默认模型的容量写为 `CLAUDE_CODE_MAX_CONTEXT_TOKENS` 与 `CLAUDE_CODE_MAX_OUTPUT_TOKENS`，注入生成的 Provider 环境。环境在 Agent 进程启动时固定，运行中通过 `/model` 切换模型不会更新；模型容量差异较大时应拆分为多个供应商。Claude Code 对无法识别的模型 ID 会把输出上限压到 128,000 Token。
+
+未显式填写每模型容量的供应商不会注入任何值，Claude Code 保持自身的兜底（无法识别的模型为 200,000 上下文、32,000 输出），而不会继承 32,768/4,096 的供应商默认值。保存供应商会重写上述两个键；旧配置中手工添加的其他 Claude Code 环境键可能因 Paseo 的递归合并而继续保留。
 
 ## 模型自动加载
 
@@ -74,9 +84,9 @@ Codex 需要支持 `codex debug models --bundled` 的 CLI（已验证 0.160.1）
 npm ci --include=dev --ignore-scripts
 npm run typecheck
 npm test
-paseo plugin install /absolute/path/to/paseo-model-providers
+paseo plugin install /absolute/path/to/paseo-model-providers-plus
 # 修改已安装的项目后：
-paseo plugin reload model-providers
+paseo plugin reload model-providers-plus
 ```
 
 运行依赖由 Paseo 提供，无运行时下载或构建步骤。凭据与生成配置存储在仓库外。采用 [MIT 许可证](LICENSE)。

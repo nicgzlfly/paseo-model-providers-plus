@@ -1,8 +1,10 @@
-# Paseo model providers
+# Paseo model providers plus (fork)
 
 [简体中文](README.zh-CN.md)
 
 Manage API endpoints and models for multiple coding agents from one Paseo screen. Keep existing subscription logins available and use custom API providers for separate sessions.
+
+This is a fork of [hulkzzhou1/paseo-model-providers](https://github.com/hulkzzhou1/paseo-model-providers) under the MIT license. It adds Claude Code context and output limit injection on top of the upstream plugin.
 
 ![Provider screen with sample data](assets/providers-en.png)
 
@@ -18,11 +20,13 @@ Protocols are not converted. For example, Codex requires an endpoint implementin
 
 ## Setup
 
-Requires Paseo **0.12.0+** on the daemon and clients, with the agent CLIs already installed and visible to the daemon. Enable plugins on the intended host, then install the community-reviewed version:
+Requires Paseo **0.12.0+** on the daemon and clients, with the agent CLIs already installed and visible to the daemon. Enable plugins on the intended host, then install this fork:
 
 ```bash
-paseo plugin add hulkzzhou1/model-providers
+paseo plugin add git:nicgzlfly/paseo-model-providers-plus
 ```
+
+The plugin id is `model-providers-plus`. Do not enable the original `model-providers` plugin at the same time: both plugins manage the same `PASEO_HOME/model-providers/suppliers.json` records and the same `mp-*` provider aliases.
 
 The screen uses a compact workbench: search providers by name, endpoint, model alias, API model ID or agent, and filter by enabled status. The settings column opens provider details with a back action; a sufficiently wide content area shows the list beside its details. The detail view shows model routing and each model’s limits without opening the editor.
 
@@ -31,7 +35,7 @@ Open **Settings → Plugins → Model providers**. The Command Center shortcut o
 1. Select **Add provider** and choose **Custom**, **DeepSeek** or **OpenRouter**. Presets fill in defaults; the name, protocol, API base URL, models and limits remain editable. You can use a compatible proxy or gateway URL. Enter your API key after selecting a preset.
 2. Select **Load models** to fill the model form automatically from the standard model endpoint. Use **Add model** for manual entries and remove rows you do not want to enable. Each row has a model ID and an optional API model ID; no comma-separated or multiline input is needed.
 3. Edit the **API model ID** in a model row to map an alias, such as `deepseek-flash` → `gateway/deepseek`. Pickers display the model ID; connection tests and agents use the API model ID. Leave the API ID blank to use the model ID itself. Model IDs and API model IDs must each be unique within a provider.
-4. Set context and output limits **in each model row**, then select compatible agents and save. Codex receives each model’s context window through a native model catalog; OpenCode and Pi/OMP receive context and output limits, including mapped models. Full token counts and K/M shorthand are supported (`1K = 1000` tokens). Loading fills missing limits from catalog metadata and preserves manually entered values. Blank fields inherit the provider’s existing defaults, so old records retain their limits without migration.
+4. Set context and output limits **in each model row**, then select compatible agents and save. Codex receives each model’s context window through a native model catalog; OpenCode and Pi/OMP receive context and output limits, including mapped models. Claude Code receives the default model's explicit limits as `CLAUDE_CODE_MAX_CONTEXT_TOKENS` and `CLAUDE_CODE_MAX_OUTPUT_TOKENS`. Full token counts and K/M shorthand are supported (`1K = 1000` tokens). Loading fills missing limits from catalog metadata and preserves manually entered values. Blank fields inherit the provider’s existing defaults, so old records retain their limits without migration.
 5. Run **Test connection**, then **Create agent** with an absolute working directory on the daemon. Generated provider entries also appear in Paseo's normal agent picker.
 
 The DeepSeek preset uses Chat Completions with `deepseek-flash` and `deepseek-v4-pro`. Defaults were checked against the [official model metadata](https://api-docs.deepseek.com/api/list-models/) on 2026-10-22; fetch the catalog to check current availability. A custom gateway can have different limits.
@@ -42,11 +46,17 @@ The OpenRouter preset uses the [official Chat Completions endpoint](https://open
 
 The editor shows a provider summary above tabs for connection, model routing and agent settings. Desktop model rows use a compact table; mobile rows keep labeled fields. Closing an edited form asks whether to discard the draft, and pending loads or saves prevent further edits and dismissal. Switching tabs preserves drafts, and validation returns to the relevant tab. Save and cancel stay visible while the active tab scrolls. Loading models merges new rows into the form without replacing manual IDs or mappings; repeated or failed loads preserve drafts. Each provider supports up to 100 model rows; excess catalog entries are reported.
 
-Codex requires a CLI supporting `codex debug models --bundled` (verified with 0.160.1). Saving builds a local catalog from that installed CLI’s model instructions and tools, with the configured per-model context windows. Its native reserve remains in effect: a 1,000,000-token window currently reports 950,000 usable tokens. The output-limit field does not configure Codex or Claude Code; Claude Code also keeps its own context rules. After updating this plugin, save existing providers again and reopen sessions to refresh the generated configuration.
+Codex requires a CLI supporting `codex debug models --bundled` (verified with 0.160.1). Saving builds a local catalog from that installed CLI’s model instructions and tools, with the configured per-model context windows. Its native reserve remains in effect: a 1,000,000-token window currently reports 950,000 usable tokens. The output-limit field does not configure Codex. After updating this plugin, save existing providers again and reopen sessions to refresh the generated configuration.
 
 Changes apply to new or reopened sessions. Existing sessions do not switch endpoints live. Custom APIs use the selected provider's API quota, independently of official subscriptions.
 
 After updating the plugin, save existing Claude/Codex providers again to regenerate their launch configuration. Codex preserves an API base URL ending in `/v2` or another supported version path.
+
+## Claude Code limits
+
+Claude Code does not read per-model limits from the supplier record. For providers that list explicit limits on a model row, this fork injects the default model's values as `CLAUDE_CODE_MAX_CONTEXT_TOKENS` and `CLAUDE_CODE_MAX_OUTPUT_TOKENS` into the generated provider environment. The environment is fixed when the agent process starts, so `/model` changes during a session do not update it; use separate providers when models have materially different windows. Claude Code caps output at 128,000 tokens for model IDs it does not recognize.
+
+A provider without explicit per-model limits gets no injected values, so Claude Code keeps its own fallback (200,000 context and 32,000 output for unrecognized models) rather than inheriting the 32,768/4,096 provider defaults. Saving a provider rewrites these two keys; manually added Claude Code environment keys from an older setup may remain because Paseo merges provider configuration recursively.
 
 ## Model discovery
 
@@ -74,9 +84,9 @@ Real supplier streaming and complete agent tool/MCP workflows have not been veri
 npm ci --include=dev --ignore-scripts
 npm run typecheck
 npm test
-paseo plugin install /absolute/path/to/paseo-model-providers
+paseo plugin install /absolute/path/to/paseo-model-providers-plus
 # After editing an installed checkout:
-paseo plugin reload model-providers
+paseo plugin reload model-providers-plus
 ```
 
 Paseo provides runtime libraries; there are no runtime downloads or build commands. Generated credentials and configuration live outside this repository. The license is [MIT](LICENSE).

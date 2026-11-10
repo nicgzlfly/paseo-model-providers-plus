@@ -1,7 +1,6 @@
 {
-  "name": "model-providers",
-  "private": true,
-  "version": "0.1.0",
+  "name": "paseo-model-providers-plus",
+  "version": "0.2.0",
   "files": [
     "paseo-plugin.json",
     "OVERVIEW.md",
@@ -32,14 +31,14 @@
     "zod": "^4.4.3",
     "@types/node": "^24.0.0"
   },
-  "description": "Manage model providers for multiple coding agents in Paseo.",
+  "description": "Paseo fork of model-providers with Claude Code context and output limit injection.",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/hulkzzhou1/paseo-model-providers.git"
+    "url": "git+https://github.com/nicgzlfly/paseo-model-providers-plus.git"
   },
-  "homepage": "https://github.com/hulkzzhou1/paseo-model-providers#readme",
+  "homepage": "https://github.com/nicgzlfly/paseo-model-providers-plus#readme",
   "bugs": {
-    "url": "https://github.com/hulkzzhou1/paseo-model-providers/issues"
+    "url": "https://github.com/nicgzlfly/paseo-model-providers-plus/issues"
   }
 }

@@ -33,6 +33,23 @@ export function limitsForModel(supplier: Supplier, model: string) {
   const limits = supplier.modelLimits?.[model];
   return limits && typeof limits.contextWindow === "number" ? limits : { contextWindow: supplier.contextWindow, maxTokens: supplier.maxTokens };
 }
+// Provider-level Claude Code env applies to the whole process, so only explicitly configured
+// per-model limits are injected; falling back to provider defaults would shrink its own fallback.
+export function explicitLimitsForModel(supplier: Supplier, model: string) {
+  const limits = supplier.modelLimits?.[model];
+  return limits && typeof limits.contextWindow === "number" && typeof limits.maxTokens === "number"
+    ? limits
+    : undefined;
+}
+export function explicitLimitsForDefaultModel(supplier: Supplier) {
+  const preferred = explicitLimitsForModel(supplier, supplier.models[0]);
+  if (preferred) return preferred;
+  for (const model of supplier.models) {
+    const limits = explicitLimitsForModel(supplier, model);
+    if (limits) return limits;
+  }
+  return undefined;
+}
 export const publicSupplierSchema = supplierSchema.extend({ hasKey: z.boolean() });
 export type PublicSupplier = z.infer<typeof publicSupplierSchema>;
 export const catalogModelSchema = z.object({
